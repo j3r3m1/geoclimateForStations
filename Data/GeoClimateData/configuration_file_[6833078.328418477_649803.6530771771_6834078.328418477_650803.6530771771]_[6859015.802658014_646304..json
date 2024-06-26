@@ -1,0 +1,111 @@
+{
+    "description": "GeoClimate configuration file created using the QGIS plug-in GeoClimateTool",
+    "input": {
+        "locations": [
+            [
+                6833078.328418477,
+                649803.6530771771,
+                6834078.328418477,
+                650803.6530771771
+            ],
+            [
+                6859015.802658014,
+                646304.6935709418,
+                6860015.802658014,
+                647304.6935709418
+            ],
+            [
+                6860219.904691861,
+                649097.5941751904,
+                6864442.462540715,
+                653593.039580727
+            ],
+            [
+                6861416.517862524,
+                643270.4739801073,
+                6862416.517862524,
+                644270.4739801073
+            ],
+            [
+                6863176.909228262,
+                643360.9111645431,
+                6864176.909228262,
+                644360.9111645431
+            ],
+            [
+                6857607.016149085,
+                650881.378266182,
+                6859593.170627514,
+                654828.5382078288
+            ],
+            [
+                6856130.684431043,
+                662216.3499474556,
+                6857130.684431043,
+                663216.3499474556
+            ],
+            [
+                6856701.156451528,
+                660041.9155429609,
+                6857701.156451528,
+                661041.9155429609
+            ],
+            [
+                6861868.273045827,
+                666447.781776348,
+                6862868.273045827,
+                667447.781776348
+            ],
+            [
+                6864452.136340265,
+                651978.2850116278,
+                6865452.136340265,
+                652978.2850116278
+            ],
+            [
+                6885851.738625425,
+                652994.1958945626,
+                6886851.738625425,
+                653994.1958945626
+            ]
+        ],
+        "area": 10000,
+        "folder": "/cnrm/ville/USERS/bernardj/Data/BDTOPO_3-3_TOUSTHEMES_SHP_LAMB93_R11_2024-03-15/",
+        "srid": 2154
+    },
+    "output": {
+        "folder": "/cnrm/ville/USERS/bernardj/Data/PANAME/GeoClimateData",
+        "tables": [
+            "zone",
+            "building",
+            "road",
+            "rail",
+            "water",
+            "vegetation",
+            "impervious",
+            "urban_areas",
+            "sea_land_mask",
+            "population",
+            "building_indicators",
+            "block_indicators",
+            "rsu_indicators",
+            "rsu_lcz",
+            "rsu_utrf_area",
+            "rsu_utrf_floor_area",
+            "building_utrf",
+            "grid_indicators",
+            "building_height_missing",
+            "road_traffic",
+            "ground_acoustic"
+        ]
+    },
+    "parameters": {
+        "rsu_indicators": {
+            "indicatorUse": [
+                "LCZ"
+            ],
+            "svfSimplified": true,
+            "estimateHeight": false
+        }
+    }
+}
