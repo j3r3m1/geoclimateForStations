@@ -29,9 +29,9 @@ qgis_env = True
 ##############################################################################
 # Declare what to do in the code (in case some steps have already been done)
 step2 = True
-step3 = False
-step4 = False
-step5 = False
+step3 = True
+step4 = True
+step5 = True
 
 # Define the folder where you want the results to be saved
 output_folder = "/home/bernardj/Code/geoclimateForStations/Data/Results"
@@ -226,7 +226,7 @@ for dt in datasets:
                 # Folder where are saved the GeoClimate results
                 geoc_res_fold = os.path.join(geoclimate_output_loc, 
                                              f"{dt_name}_{gdf_zones_str[dt].loc[i]}")
-                groovy_cmd = f"""groovy {os.path.abspath(os.path.join(os.curdir, "LczForStationBuffer", "src", "main", "groovy", "Main.groovy"))} {station_buff_file} {out_file} {geoc_res_fold} {id_st}"""
+                groovy_cmd = f"""groovy {os.path.abspath(os.path.join(os.curdir, "LczForStationBuffer", "src", "main", "groovy", "Main.groovy"))} {station_buff_file} {out_file} {geoc_res_fold} {id_st} {dt[0:3].lower()}"""
                 
                 # Execute the GeoClimate workflow and log informations
                 try:

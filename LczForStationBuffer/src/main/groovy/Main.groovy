@@ -24,6 +24,9 @@ String extension = ".fgb"
 // Name of the ID station column (the id should be an integer)
 String ID_station = args[3]
 
+// Name of the dataset
+String dataset = args[4]
+
 
 // Modify initial input parameters (set only LCZ calculation)
 Map input_params = Geoindicators.WorkflowGeoIndicators.getParameters()
@@ -32,10 +35,10 @@ input_params["indicatorUse"] = ["LCZ", "TEB", "UTRF"]
 // Open an H2GIS connection
 h2GIS = open(File.createTempDir().toString() + File.separator + "myH2GIS_DB;AUTO_SERVER=TRUE")
 
-main(geoclimate_dir, h2GIS, input_params, buffer_dir, outputPath, ID_station, extension)
+main(geoclimate_dir, h2GIS, input_params, buffer_dir, outputPath, ID_station, extension, dataset)
 
 static void main(String inputDir, JdbcDataSource h2GIS, Map input_params, File buffer_dir,
-                 String outputPath, String ID_station, String extension) {
+                 String outputPath, String ID_station, String extension, String dataset) {
   String outputLcz = "RSU_LCZ"
   String outputIndic = "RSU_INDICATORS"
   
@@ -82,23 +85,33 @@ static void main(String inputDir, JdbcDataSource h2GIS, Map input_params, File b
 
     println("Calculate station $id_rsu ($i/$n)")
 
+    println("1")
     // Need to delete the potential existing id_rsu in the building table
-    h2GIS """DROP TABLE IF EXISTS building_tempo;
-            CREATE TABLE building_tempo
-                AS SELECT * EXCEPT(ID_RSU, ID_BLOCK)
-                FROM building"""
-
+    if(dataset == "osm"){
+        h2GIS """DROP TABLE IF EXISTS building_tempo;
+                CREATE TABLE building_tempo
+                    AS SELECT * EXCEPT(ID_RSU, ID_BLOCK)
+                    FROM building"""
+    }
+    else{
+        h2GIS """DROP TABLE IF EXISTS building_tempo;
+                CREATE TABLE building_tempo
+                    AS SELECT * EXCEPT(ID_RSU)
+                    FROM building"""
+    }
+    println("2")
     // Create a table containing a single unit...
     h2GIS """DROP TABLE IF EXISTS RSU$id_rsu;
                     CREATE TABLE RSU$id_rsu
                       AS SELECT * FROM RSU
                       WHERE ID_RSU = $id_rsu"""
-                     
+    println("3")                 
     // Restrict the zone to the buffer
     h2GIS """DROP TABLE IF EXISTS zone_tempo;
             CREATE TABLE zone_tempo
                 AS SELECT the_geom as the_geom, 'rsu$id_rsu' as ID_RSU
                 FROM rsu$id_rsu"""
+    println("4")
     rsu_list[id_rsu] = Geoindicators.WorkflowGeoIndicators.computeAllGeoIndicators(
                                h2GIS,
                               "zone_tempo",
@@ -114,7 +127,7 @@ static void main(String inputDir, JdbcDataSource h2GIS, Map input_params, File b
                               "RSU$id_rsu",
                               input_params,
                               "rsu$id_rsu")
-
+    println("5")
     // Add the table to the list of tables to union
     queryFinLcz.add("SELECT * FROM ${rsu_list[id_rsu]['rsu_lcz']}")
     queryFinIndic.add("SELECT * FROM ${rsu_list[id_rsu]['rsu_indicators']}")
@@ -129,7 +142,7 @@ static void main(String inputDir, JdbcDataSource h2GIS, Map input_params, File b
                     CREATE TABLE $outputIndic
                     AS ${queryFinIndic.join(" UNION ALL ")};
             ALTER TABLE $outputIndic RENAME COLUMN id_rsu TO $ID_station"""
-
+  println("6")
   // Save results
   h2GIS.save(outputLcz, outputPath + File.separator + "${outputLcz}.fgb")
   h2GIS.save(outputIndic, outputPath + File.separator + "${outputIndic}.fgb")
