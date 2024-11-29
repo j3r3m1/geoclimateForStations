@@ -1,0 +1,57 @@
+{
+    "description": "GeoClimate configuration file created using the QGIS plug-in GeoClimateTool",
+    "input": {
+        "locations": [
+            [
+                6864452.136340265,
+                651978.2850116278,
+                6865452.136340265,
+                652978.2850116278
+            ],
+            [
+                6862433.7443284495,
+                652593.039580727,
+                6863433.7443284495,
+                653593.039580727
+            ]
+        ],
+        "area": 10000,
+        "folder": "/home/bernardj/Data/BDT/V3/BDTOPO_3-3_TOUSTHEMES_SHP_LAMB93_R11_2024-03-15",
+        "srid": 2154
+    },
+    "output": {
+        "folder": "/home/bernardj/Code/geoclimateForStations/Data/GeoClimateData",
+        "tables": [
+            "zone",
+            "building",
+            "road",
+            "rail",
+            "water",
+            "vegetation",
+            "impervious",
+            "urban_areas",
+            "sea_land_mask",
+            "population",
+            "building_indicators",
+            "block_indicators",
+            "rsu_indicators",
+            "rsu_lcz",
+            "rsu_utrf_area",
+            "rsu_utrf_floor_area",
+            "building_utrf",
+            "grid_indicators",
+            "building_height_missing",
+            "road_traffic",
+            "ground_acoustic"
+        ]
+    },
+    "parameters": {
+        "rsu_indicators": {
+            "indicatorUse": [
+                "LCZ"
+            ],
+            "svfSimplified": true,
+            "estimateHeight": false
+        }
+    }
+}
