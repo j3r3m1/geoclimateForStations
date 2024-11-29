@@ -72,7 +72,7 @@
         "area": 10000
     },
     "output": {
-        "folder": "/cnrm/ville/USERS/bernardj/Data/PANAME/GeoClimateData",
+        "folder": "/home/bernardj/Code/geoclimateForStations/Data/GeoClimateData",
         "tables": [
             "zone",
             "building",

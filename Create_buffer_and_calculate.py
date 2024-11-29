@@ -25,9 +25,9 @@ qgis_env = True
 ################## DEFINE VARIABLES ##########################################
 ##############################################################################
 # Declare what to do in the code (in case some steps have already been done)
-step2 = True
-step3 = True
-step4 = False
+step2 = False
+step3 = False
+step4 = True
 
 # Location of the BDTOPO data
 bdtopo_path = "/cnrm/ville/USERS/bernardj/Data/BDTOPO_3-3_TOUSTHEMES_SHP_LAMB93_R11_2024-03-15/"
@@ -40,7 +40,7 @@ station_name = "SITE"
 buffer_size_list = [100, 300, 500]
 
 # Where to save GeoClimate outputs
-geoclimate_output_loc = "/cnrm/ville/USERS/bernardj/Data/PANAME/GeoClimateData"
+geoclimate_output_loc = "/home/bernardj/Code/geoclimateForStations/Data/GeoClimateData"
 
 
 
@@ -74,6 +74,7 @@ QgsApplication.processingRegistry().addProvider(geoclimate_provider)
 ##############################################################################
 ################## 1. IDENTIFY ZONES TO DOWNLOAD #############################
 ##############################################################################
+print("1. IDENTIFY ZONES TO DOWNLOAD")
 datasets = {"OSM" : 4326, "BDTOPO_V3" : 2154}
 
 df_stations = pd.read_csv(station_location_path,
@@ -109,6 +110,7 @@ datasets = {"OSM" : 4326}
 ##############################################################################
 ################## 2. FORMAT DATA TO GEOCLIMATE INPUTS #######################
 ##############################################################################
+print("2. FORMAT DATA TO GEOCLIMATE INPUTS")
 if step2:
     for dt in datasets:
         if dt == "OSM":
@@ -135,6 +137,7 @@ if step2:
 ##############################################################################
 ########### 3. CALCULATE BUFFERS AROUND STATIONS FOR EACH ZONE ###############
 ##############################################################################
+print("3. CALCULATE BUFFERS AROUND STATIONS FOR EACH ZONE")
 buffer_file_name = "station_buffer.fgb"
 # Allocate to each station the corresponding zone
 if step3:
@@ -155,6 +158,7 @@ if step3:
 ##############################################################################
 ################## 4. CALCULATE INDICATORS FOR EACH BUFFER ###################
 ##############################################################################
+print("4. CALCULATE INDICATORS FOR EACH BUFFER")
 groovy_cmd = f'groovy {os.path.abspath(os.path.join(os.curdir, "LczForStationBuffer", "src", "main", "groovy", "Main.groovy"))}'
 
 # Execute the GeoClimate workflow and log informations
