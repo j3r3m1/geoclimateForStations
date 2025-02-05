@@ -1,0 +1,3 @@
+[submodule "geoclimatetool"]
+	path = geoclimatetool
+	url = git@github.com:j3r3m1/geoclimatetool.git
