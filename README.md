@@ -24,6 +24,13 @@ Open a terminal where you would like to save the code and type:
 git clone git@github.com:j3r3m1/geoclimateForStations.git
 ```
 
+Since geoclimateForStations is based on the geoclimatetool, you also need to download the corresponding code which has been added within this code as a submodule. Thus use the following commands:
+```bash
+git submodule init
+git submodule update
+```
+
+
 # Else...
 Simply download and extract the code using this download link: https://github.com/j3r3m1/geoclimateForStations/archive/refs/heads/main.zip
 
