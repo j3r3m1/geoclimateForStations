@@ -212,13 +212,24 @@ for dt in datasets:
 ##############################################################################
 print("4. CALCULATE INDICATORS FOR EACH BUFFER")
 groovy_cmd = f'groovy {os.path.abspath(os.path.join(os.curdir, "LczForStationBuffer", "src", "main", "groovy", "Main.groovy"))}'
-
+for dt in datasets:
+    list_lcz = {buf: [] for buf in buffer_size_list}
+    list_indic = {buf: [] for buf in buffer_size_list}
+    for i in gdf_zones_epsg[dt].index:
+        # Save the buffer file into the corresponding zone folder for each type of data
+        if dt[0:3].lower() == "bdt":
+            dt_name = f"bdtopo_{dt[-1:]}"
+        else:
+            dt_name = "osm"
+        station_buff_file = os.path.join(geoclimate_output_loc, 
+                                         f"{dt_name}_{gdf_zones_str[dt].loc[i]}",
+                                         buffer_file_name)
         if step4:        
             try:
                 # Get the name of the buffer station ID column
                 id_st = gpd.read_file(station_buff_file).columns[0]
             except: 
-                raise Exception("There is no buffer file, it seems you should do step 3 before step 4") 
+                raise Exception("There is no buffer file, you should do step 3 before step 4") 
                 
             # Name of the output folder
             out_file = os.path.join(output_folder, f"{dt_name}_{gdf_zones_str[dt].loc[i]}")
