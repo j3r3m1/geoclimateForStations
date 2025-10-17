@@ -18,6 +18,7 @@ import geopandas as gpd
 import numpy as np
 import glob
 import logging
+from pathlib import Path
 from geoclimatetool.functions.globalVariables import *
 from geoclimatetool.functions.otherFunctions import runProcess
 
@@ -34,7 +35,9 @@ step4 = True
 step5 = True
 
 # Define the folder where you want the results to be saved
-output_folder = "/home/bernardj/Code/geoclimateForStations/Data/Results"
+# output_folder = "/home/bernardj/Code/geoclimateForStations/Data/Results"
+output_folder = "/home/decide/Data/Climato/Donnees_brutes/Data_Toulouse/UCP/"
+output_folder = "/home/decide/Data/Climato/Donnees_brutes/Data_test/UCP/"
 
 # Location of the BDTOPO data
 #bdtopo_path = "/cnrm/ville/USERS/bernardj/Data/BDTOPO_3-3_TOUSTHEMES_SHP_LAMB93_R11_2024-03-15/"
@@ -43,14 +46,17 @@ bdtopo_path = "/home/bernardj/Data/BDT/V3/BDTOPO_3-3_TOUSTHEMES_SHP_LAMB93_R11_2
 # Define the file path where are saved informations about stations, and column names
 #station_location_path = "/cnrm/ville/USERS/bernardj/Data/PANAME/Liste_stations_LCZs.csv"
 station_location_path = "/home/bernardj/Code/geoclimateForStations/Data/Liste_stations_LCZs.csv"
+station_location_path = "/home/decide/Data/Climato/Donnees_brutes/Data_Toulouse/station_location_final.fgb"
+station_location_path = "/home/decide/Code/Python/geoclimateForStations/Data/Liste_stations_test.csv"
 station_lat = "LAT"
 station_lon = "LON"
 station_name = "ID"
-buffer_size_list = [100, 300, 500]
+buffer_size_list = [100, 250, 500]
 
 # Where to save GeoClimate outputs
-geoclimate_output_loc = "/home/bernardj/Code/geoclimateForStations/Data/GeoClimateData"
-
+# geoclimate_output_loc = "/home/bernardj/Code/geoclimateForStations/Data/GeoClimateData"
+geoclimate_output_loc = "/home/decide/Data/Climato/Donnees_brutes/Data_Toulouse"
+geoclimate_output_loc = "/home/decide/Data/Climato/Donnees_brutes/Data_test/"
 
 # Need to set where groovy is installed on the computer to add it in the path of the cmd
 groovy_loc = "/home/bernardj/.sdkman/candidates/groovy/current/bin"
@@ -93,16 +99,21 @@ os.environ["PATH"] += ":" + groovy_loc
 print("1. IDENTIFY ZONES TO DOWNLOAD")
 datasets = {"OSM" : 4326, "BDTOPO_V3" : 2154}
 
-df_stations = pd.read_csv(station_location_path,
-                          header = 0, 
-                          index_col = station_name,
-                          sep = ";",
-                          decimal = ",")
-gdf_station = gpd.GeoDataFrame(df_stations, geometry=gpd.GeoSeries.from_xy(df_stations[station_lon], 
-                                                                           df_stations[station_lat]),
-                               crs=4326).to_crs(f"EPSG:{datasets['BDTOPO_V3']}")
-# Save stations as GIS file
-gdf_station.to_file(".".join(station_location_path.split(".")[0:-1]) + ".fgb")
+if Path(station_location_path).suffix == ".csv":
+    df_stations = pd.read_csv(station_location_path,
+                              header = 0, 
+                              index_col = station_name,
+                              sep = ";",
+                              decimal = ",")
+    gdf_station = gpd.GeoDataFrame(df_stations, geometry=gpd.GeoSeries.from_xy(df_stations[station_lon], 
+                                                                               df_stations[station_lat]),
+                                   crs=4326).to_crs(f"EPSG:{datasets['BDTOPO_V3']}")
+    # Save stations as GIS file
+    gdf_station.to_file(".".join(station_location_path.split(".")[0:-1]) + ".fgb")
+else:
+    gdf_station = gpd.read_file(station_location_path).to_crs(f"EPSG:{datasets['BDTOPO_V3']}")
+
+
 buff_max = max(buffer_size_list)
 
 # # Union the largest buffers together and explode to a limited number of geometries
@@ -111,18 +122,13 @@ buff_max = max(buffer_size_list)
 # Union the largest buffers together and explode to a limited number of geometries
 gdf_zones = gpd.GeoSeries(gdf_station.buffer(buff_max), 
                           crs = f"EPSG:{datasets['BDTOPO_V3']}")
-gdf_zones_epsg = {dt: gdf_zones.to_crs(f"EPSG:{epsg}") \
-                  for dt, epsg in datasets.items()}
-gdf_zones_bounds = {dt: gdf_zones_epsg[dt].bounds \
-                    for dt, epsg in datasets.items()}
-gdf_zones_str = {dt : data["miny"].astype(str) + "_" + data["minx"].astype(str)\
-                 + "_" + data["maxy"].astype(str) + "_" + data["maxx"].astype(str)\
-                     for dt, data in gdf_zones_bounds.items()}
-gdf_zones_bbox = {dt : [[float(i) for i in j] for j in list(data.str.split("_").values)]\
-                  for dt, data in gdf_zones_str.items()}
+gdf_zones_epsg = {dt: gdf_zones.to_crs(f"EPSG:{epsg}") for dt, epsg in datasets.items()}
+gdf_zones_bounds = {dt: gdf_zones_epsg[dt].bounds for dt, epsg in datasets.items()}
+gdf_zones_str = {dt : data["miny"].astype(str) + "_" + data["minx"].astype(str) + "_" + data["maxy"].astype(str) + "_" + data["maxx"].astype(str) for dt, data in gdf_zones_bounds.items()}
+gdf_zones_bbox = {dt : [[float(i) for i in j] for j in list(data.str.split("_").values)] for dt, data in gdf_zones_str.items()}
 
 #datasets = {"BDTOPO_V3" : 2154}
-#datasets = {"OSM" : 4326}
+datasets = {"OSM" : 4326}
 
 
 
@@ -206,12 +212,11 @@ for dt in datasets:
                 stations_by_zone_tmp.index = stations_by_zone_tmp.index + buf_siz
                 list_by_buf.append(stations_by_zone_tmp)
             # Gather all sizes of buffer geometries into a single file
-            pd.concat(list_by_buf).to_file(station_buff_file)
+            pd.concat(list_by_buf).rename_axis("id", axis = 0).to_file(station_buff_file)
 ##############################################################################
 ################## 4. CALCULATE INDICATORS FOR EACH BUFFER ###################
 ##############################################################################
 print("4. CALCULATE INDICATORS FOR EACH BUFFER")
-groovy_cmd = f'groovy {os.path.abspath(os.path.join(os.curdir, "LczForStationBuffer", "src", "main", "groovy", "Main.groovy"))}'
 for dt in datasets:
     list_lcz = {buf: [] for buf in buffer_size_list}
     list_indic = {buf: [] for buf in buffer_size_list}

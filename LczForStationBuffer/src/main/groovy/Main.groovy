@@ -1,5 +1,5 @@
 // Add as comment in IntelliJ
-@GrabResolver(name='orbisgis', root='https://oss.sonatype.org/content/repositories/snapshots/')
+@GrabResolver(name='orbisgis', root='https://central.sonatype.com/repository/maven-snapshots')
 @Grab(group='org.orbisgis.geoclimate', module='geoclimate', version='1.0.1-SNAPSHOT')
 
 // Remove comment in IntelliJ
@@ -44,7 +44,7 @@ static void main(String inputDir, JdbcDataSource h2GIS, Map input_params, File b
   
   String extension_tmp
   // Load GeoClimate files into the Database
-  for (l in ["zone", "rail", "road", "building", "vegetation",
+  for (l in ["zone_extended", "zone", "rail", "road", "building", "vegetation",
              "water", "impervious", "sea_land_mask", "urban_areas",
              "building_height_missing"]){
     if (l == "building_height_missing"){
@@ -83,9 +83,9 @@ static void main(String inputDir, JdbcDataSource h2GIS, Map input_params, File b
     def rowMap = row.toRowResult()
     def id_rsu = rowMap."ID_RSU"
 
-    println("Calculate station $id_rsu ($i/$n)")
+    println("Calculate station $id_rsu (buffer $i/$n)")
 
-    println("1")
+    
     // Need to delete the potential existing id_rsu in the building table
     if(dataset == "osm"){
         h2GIS """DROP TABLE IF EXISTS building_tempo;
@@ -99,22 +99,23 @@ static void main(String inputDir, JdbcDataSource h2GIS, Map input_params, File b
                     AS SELECT * EXCEPT(ID_RSU)
                     FROM building"""
     }
-    println("2")
+    
     // Create a table containing a single unit...
     h2GIS """DROP TABLE IF EXISTS RSU$id_rsu;
                     CREATE TABLE RSU$id_rsu
                       AS SELECT * FROM RSU
                       WHERE ID_RSU = $id_rsu"""
-    println("3")                 
+                   
     // Restrict the zone to the buffer
     h2GIS """DROP TABLE IF EXISTS zone_tempo;
             CREATE TABLE zone_tempo
                 AS SELECT the_geom as the_geom, 'rsu$id_rsu' as ID_RSU
                 FROM rsu$id_rsu"""
-    println("4")
+    
     rsu_list[id_rsu] = Geoindicators.WorkflowGeoIndicators.computeAllGeoIndicators(
                                h2GIS,
                               "zone_tempo",
+                              "zone_extended",
                               "building_tempo",
                               "road",
                               "rail",
@@ -127,7 +128,7 @@ static void main(String inputDir, JdbcDataSource h2GIS, Map input_params, File b
                               "RSU$id_rsu",
                               input_params,
                               "rsu$id_rsu")
-    println("5")
+    
     // Add the table to the list of tables to union
     queryFinLcz.add("SELECT * FROM ${rsu_list[id_rsu]['rsu_lcz']}")
     queryFinIndic.add("SELECT * FROM ${rsu_list[id_rsu]['rsu_indicators']}")
@@ -142,7 +143,7 @@ static void main(String inputDir, JdbcDataSource h2GIS, Map input_params, File b
                     CREATE TABLE $outputIndic
                     AS ${queryFinIndic.join(" UNION ALL ")};
             ALTER TABLE $outputIndic RENAME COLUMN id_rsu TO $ID_station"""
-  println("6")
+  
   // Save results
   h2GIS.save(outputLcz, outputPath + File.separator + "${outputLcz}.fgb")
   h2GIS.save(outputIndic, outputPath + File.separator + "${outputIndic}.fgb")
