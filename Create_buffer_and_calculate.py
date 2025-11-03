@@ -20,10 +20,7 @@ import glob
 import logging
 from pathlib import Path
 from geoclimatetool.functions.globalVariables import *
-from geoclimatetool.functions.otherFunctions import runProcess
-
-# Define whether or not the QGIS environment should be used
-qgis_env = True
+from geoclimatetool.functions.otherFunctions import runProcess, setConfigAndRun
 
 ##############################################################################
 ################## DEFINE VARIABLES ##########################################
@@ -45,13 +42,13 @@ bdtopo_path = "/home/bernardj/Data/BDT/V3/BDTOPO_3-3_TOUSTHEMES_SHP_LAMB93_R11_2
 
 # Define the file path where are saved informations about stations, and column names
 #station_location_path = "/cnrm/ville/USERS/bernardj/Data/PANAME/Liste_stations_LCZs.csv"
-station_location_path = "/home/bernardj/Code/geoclimateForStations/Data/Liste_stations_LCZs.csv"
-station_location_path = "/home/decide/Data/Climato/Donnees_brutes/Data_Toulouse/station_location_final.fgb"
-station_location_path = "/home/decide/Code/Python/geoclimateForStations/Data/Liste_stations_test.csv"
+station_location_path = "/home/decide/Code/Python/geoclimateForStations/Data/Liste_stations_Gabrielle.csv"
 station_lat = "LAT"
 station_lon = "LON"
 station_name = "ID"
-buffer_size_list = [100, 250, 500]
+station_file_sep = "\t"
+station_file_dec = "."
+buffer_size_list = [25, 50, 100, 200, 300, 400]
 
 # Where to save GeoClimate outputs
 # geoclimate_output_loc = "/home/bernardj/Code/geoclimateForStations/Data/GeoClimateData"
@@ -61,30 +58,8 @@ geoclimate_output_loc = "/home/decide/Data/Climato/Donnees_brutes/Data_test/"
 # Need to set where groovy is installed on the computer to add it in the path of the cmd
 groovy_loc = "/home/bernardj/.sdkman/candidates/groovy/current/bin"
 
-##############################################################################
-################## ACTIVATE QGIS ENV #########################################
-##############################################################################
-# Variables for using the QGIS plugins installed on computer (such as GeoClimateTool tool)
-path_for_processing = "/usr/share/qgis/python/plugins"
-if os.path.exists(path_for_processing):
-    sys.path.append(path_for_processing)
-
-# Necessary imports if QGIS environment is used
-from qgis.core import QgsApplication
-
-# # Starts the qgis application without the graphical user interface
-gui_flag = False
-app = QgsApplication([], gui_flag)
-app.initQgis()
-
-import processing
-
-from processing.core.Processing import Processing
-Processing.initialize()
-
-from geoclimatetool.processing_geoclimate_provider import ProcessingGeoClimateProvider
-geoclimate_provider = ProcessingGeoClimateProvider()
-QgsApplication.processingRegistry().addProvider(geoclimate_provider)
+# Location of the geoclimate jar (make sure you have the latest snapshot version)
+geoclim_jar_path = os.path.join(os.path.curdir, "geoclimatetool", 'Resources', GEOCLIMATE_JAR_NAME)
 
 
 ##############################################################################
@@ -103,8 +78,8 @@ if Path(station_location_path).suffix == ".csv":
     df_stations = pd.read_csv(station_location_path,
                               header = 0, 
                               index_col = station_name,
-                              sep = ";",
-                              decimal = ",")
+                              sep = station_file_sep,
+                              decimal = station_file_dec)
     gdf_station = gpd.GeoDataFrame(df_stations, geometry=gpd.GeoSeries.from_xy(df_stations[station_lon], 
                                                                                df_stations[station_lat]),
                                    crs=4326).to_crs(f"EPSG:{datasets['BDTOPO_V3']}")
@@ -158,22 +133,36 @@ if step2:
         gdf_zones_bbox_tmp = list(gdf_zones_bbox_tmp.values)
         # Calculations are processed
         if len(gdf_zones_bbox_tmp)>0:
-            processing.run("GeoClimateTool:coolparkstool_process", 
-                           {'INPUT_DATASET':list(DATASETS.columns).index(dt),
-                            'INPUT_DIRECTORY':input_data,
-                            'ESTIMATED_HEIGHT':True,
-                            'LCZ_CALC':True,
-                            'UTRF_CALC':False,
-                            'WRF_INPUTS':False,
-                            'TEB_INPUTS':False,
-                            'SVF_SIMPLIFIED':True,
-                            'LOCATION':str(gdf_zones_bbox_tmp)[1:-1],
-                            'EXTENT':None,
-                            'OUTPUT_DIRECTORY':geoclimate_output_loc,
-                            'LOAD_INPUTS':False,
-                            'LOAD_OUTPUTS':False,
-                            'STYLE_LANGUAGE':0})
-
+            # processing.run("GeoClimateTool:coolparkstool_process", 
+            #                {'INPUT_DATASET':list(DATASETS.columns).index(dt),
+            #                 'INPUT_DIRECTORY':input_data,
+            #                 'ESTIMATED_HEIGHT':True,
+            #                 'LCZ_CALC':True,
+            #                 'UTRF_CALC':False,
+            #                 'WRF_INPUTS':False,
+            #                 'TEB_INPUTS':False,
+            #                 'SVF_SIMPLIFIED':True,
+            #                 'LOCATION':str(gdf_zones_bbox_tmp)[1:-1],
+            #                 'EXTENT':None,
+            #                 'OUTPUT_DIRECTORY':geoclimate_output_loc,
+            #                 'LOAD_INPUTS':False,
+            #                 'LOAD_OUTPUTS':False,
+            #                 'STYLE_LANGUAGE':0})
+            
+            setConfigAndRun(location = str(gdf_zones_bbox_tmp)[1:-1],
+                            bbox = None,
+                            inputDataset = list(DATASETS.columns).index(dt),
+                            inputDirectory = input_data,
+                            styleLanguage = 0,
+                            geoclim_jar_path = geoclim_jar_path,
+                            bbox_crs_ini = None,
+                            outputDirectory = geoclimate_output_loc,
+                            lczCalc = True,
+                            tebInputs = False,
+                            utrfCalc = False, 
+                            wrfInputs = False,
+                            svfSimplified = True,
+                            estimateHeight = True)
 
 ##############################################################################
 ########### 3. CALCULATE BUFFERS AROUND STATIONS FOR EACH ZONE ###############
@@ -209,7 +198,7 @@ for dt in datasets:
                 stations_by_zone_tmp = gdf_station[gdf_zones_epsg[dt].loc[[i]].to_crs(f"EPSG:{epsg}")\
                                                    .covers(gdf_station.to_crs(f"EPSG:{epsg}"), True)]
                 stations_by_zone_tmp = stations_by_zone_tmp.to_crs(f"EPSG:{epsg}").buffer(buf_siz)
-                stations_by_zone_tmp.index = stations_by_zone_tmp.index + buf_siz
+                stations_by_zone_tmp.index = stations_by_zone_tmp.index + 10 * buf_siz
                 list_by_buf.append(stations_by_zone_tmp)
             # Gather all sizes of buffer geometries into a single file
             pd.concat(list_by_buf).rename_axis("id", axis = 0).to_file(station_buff_file)
@@ -263,18 +252,18 @@ for dt in datasets:
 ################## 5. GATHER RESULTS IN A SINGLE FILE ########################
 ##############################################################################
         if step5:
-            try:
-                tmp_lcz = gpd.read_file(os.path.join(out_file, "RSU_LCZ.fgb"))
-                idx = tmp_lcz.ID[0] - buffer_size_list[0]
-                tmp_lcz.drop("ID", axis = 1, inplace = True)
-                for i, buf in enumerate(buffer_size_list):
-                    list_lcz[buf].append(tmp_lcz.loc[[i],:].set_index(pd.Index([idx])))
-            except:
-                raise Exception(f"There is no output RSU_LCZ file for folder {out_file}")
+            # try:
+            #     tmp_lcz = gpd.read_file(os.path.join(out_file, "RSU_LCZ.fgb"))
+            #     idx = tmp_lcz.ID[0] - 10 *  buffer_size_list[0]
+            #     tmp_lcz.drop("ID", axis = 1, inplace = True)
+            #     for i, buf in enumerate(buffer_size_list):
+            #         list_lcz[buf].append(tmp_lcz.loc[[i],:].set_index(pd.Index([idx])))
+            # except:
+            #     raise Exception(f"There is no output RSU_LCZ file for folder {out_file}")
 
             try:
                 tmp_indic = gpd.read_file(os.path.join(out_file, "RSU_INDICATORS.fgb"))
-                idx = tmp_indic.ID[0] - buffer_size_list[0]
+                idx = tmp_indic.ID[0] - 10 * buffer_size_list[0]
                 tmp_indic.drop("ID", axis = 1, inplace = True)
                 for i, buf in enumerate(buffer_size_list):
                     list_indic[buf].append(tmp_indic.loc[[i],:].set_index(pd.Index([idx])))
@@ -283,10 +272,14 @@ for dt in datasets:
 
     if step5:
         # Gather all results
-        rsu_lcz = {buf : pd.concat(list_lcz[buf]) for i, buf in enumerate(buffer_size_list)}
+        #rsu_lcz = {buf : pd.concat(list_lcz[buf]) for i, buf in enumerate(buffer_size_list)}
         rsu_indic = {buf : pd.concat(list_indic[buf]) for i, buf in enumerate(buffer_size_list)}
         
         for buf in buffer_size_list:
-            rsu_lcz[buf].to_file(os.path.join(output_folder, f"{dt}_RSU_LCZ_{buf}m.fgb"))
-            rsu_indic[buf].to_file(os.path.join(output_folder, f"{dt}_RSU_INDICATORS_{buf}m.fgb"))
+            #rsu_lcz[buf].to_file(os.path.join(output_folder, f"{dt}_RSU_LCZ_{buf}m.fgb"))
+            rsu_indic[buf]\
+                .join(gdf_station.drop("geometry", axis = 1))\
+                    .to_file(os.path.join(output_folder,
+                                          f"{dt}_RSU_INDICATORS_{buf}m.fgb"),
+                             index = True)
                 

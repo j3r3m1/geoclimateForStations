@@ -32,7 +32,9 @@ git submodule update
 
 
 # Else...
-Simply download and extract the code using this download link: https://github.com/j3r3m1/geoclimateForStations/archive/refs/heads/main.zip
+Simply download and extract the code using two download links:
+- for the main scripts: https://github.com/j3r3m1/geoclimateForStations/archive/refs/heads/main.zip
+- for the scripts belonging to the geoclimatetool
 
 
 ## Run the code

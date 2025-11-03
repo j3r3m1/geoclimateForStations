@@ -31,14 +31,23 @@ String dataset = args[4]
 // Modify initial input parameters (set only LCZ calculation)
 Map input_params = Geoindicators.WorkflowGeoIndicators.getParameters()
 input_params["indicatorUse"] = ["LCZ", "TEB", "UTRF"]
+list_indicators = ["BUILDING_FRACTION", "BUILDING_HEIGHT", 
+        "WATER_FRACTION", "VEGETATION_FRACTION",
+         "ROAD_FRACTION", "IMPERVIOUS_FRACTION", "FREE_EXTERNAL_FACADE_DENSITY", 
+         "BUILDING_HEIGHT_WEIGHTED", "BUILDING_SURFACE_DENSITY",
+          "SEA_LAND_FRACTION", "ASPECT_RATIO", "SVF", "HEIGHT_OF_ROUGHNESS_ELEMENTS",
+           "TERRAIN_ROUGHNESS", "STREET_WIDTH", "PROJECTED_FACADE_DENSITY_DIR", 
+           "BUILDING_DIRECTION", "BUILDING_NUMBER"]
 
 // Open an H2GIS connection
 h2GIS = open(File.createTempDir().toString() + File.separator + "myH2GIS_DB;AUTO_SERVER=TRUE")
 
-main(geoclimate_dir, h2GIS, input_params, buffer_dir, outputPath, ID_station, extension, dataset)
+main(geoclimate_dir, h2GIS, input_params, buffer_dir, outputPath, ID_station, extension,
+     dataset, list_indicators, "id_grid")
 
 static void main(String inputDir, JdbcDataSource h2GIS, Map input_params, File buffer_dir,
-                 String outputPath, String ID_station, String extension, String dataset) {
+                 String outputPath, String ID_station, String extension, String dataset, 
+                 List list_indicators, String id_name) {
   String outputLcz = "RSU_LCZ"
   String outputIndic = "RSU_INDICATORS"
   
@@ -64,7 +73,7 @@ static void main(String inputDir, JdbcDataSource h2GIS, Map input_params, File b
   // Load the RSU (which are the buffer around station) into the database
   if (buffer_dir.exists()){
     h2GIS.load(buffer_dir.toString(), "rsu")
-    h2GIS """ALTER TABLE RSU RENAME COLUMN $ID_station TO id_rsu"""
+    h2GIS """ALTER TABLE RSU RENAME COLUMN $ID_station TO $id_name"""
   }
   else{
     println(buffer_dir.toString() + " do not exist")
@@ -81,9 +90,9 @@ static void main(String inputDir, JdbcDataSource h2GIS, Map input_params, File b
   h2GIS.eachRow("SELECT * FROM rsu") {row ->
     i++
     def rowMap = row.toRowResult()
-    def id_rsu = rowMap."ID_RSU"
+    def id_rsu = rowMap."$id_name"
 
-    println("Calculate station $id_rsu (buffer $i/$n)")
+    println("Calculate buffer $i/$n")
 
     
     // Need to delete the potential existing id_rsu in the building table
@@ -104,14 +113,14 @@ static void main(String inputDir, JdbcDataSource h2GIS, Map input_params, File b
     h2GIS """DROP TABLE IF EXISTS RSU$id_rsu;
                     CREATE TABLE RSU$id_rsu
                       AS SELECT * FROM RSU
-                      WHERE ID_RSU = $id_rsu"""
+                      WHERE $id_name = $id_rsu"""
                    
     // Restrict the zone to the buffer
     h2GIS """DROP TABLE IF EXISTS zone_tempo;
             CREATE TABLE zone_tempo
                 AS SELECT the_geom as the_geom, 'rsu$id_rsu' as ID_RSU
                 FROM rsu$id_rsu"""
-    
+    /**
     rsu_list[id_rsu] = Geoindicators.WorkflowGeoIndicators.computeAllGeoIndicators(
                                h2GIS,
                               "zone_tempo",
@@ -128,23 +137,45 @@ static void main(String inputDir, JdbcDataSource h2GIS, Map input_params, File b
                               "RSU$id_rsu",
                               input_params,
                               "rsu$id_rsu")
-    
+                              
     // Add the table to the list of tables to union
     queryFinLcz.add("SELECT * FROM ${rsu_list[id_rsu]['rsu_lcz']}")
     queryFinIndic.add("SELECT * FROM ${rsu_list[id_rsu]['rsu_indicators']}")
 
+                              
+    */
+    rsu_list[id_rsu] = Geoindicators.WorkflowGeoIndicators.rasterizeIndicators(
+                                h2GIS,
+                                "RSU$id_rsu", 
+                                list_indicators,
+                                "building_tempo", 
+                                "road", 
+                                "vegetation",
+                                "water", 
+                                "impervious", 
+                                "",
+                                "", 
+                                "", 
+                                "sea_land_mask",
+                                "rsu$id_rsu")
+    
+    // Add the table to the list of tables to union
+    queryFinIndic.add("SELECT * FROM ${rsu_list[id_rsu]}")
+
+
   }
-  // Union all buffers for LCZ and indicators
+  // Union all buffers for LCZ and indicators and save the results
+  /**
   h2GIS """DROP TABLE IF EXISTS $outputLcz;
                       CREATE TABLE $outputLcz
                       AS ${queryFinLcz.join(" UNION ALL ")};
                 ALTER TABLE $outputLcz RENAME COLUMN id_rsu TO $ID_station"""
+  h2GIS.save(outputLcz, outputPath + File.separator + "${outputLcz}.fgb")
+  */
+  
   h2GIS """DROP TABLE IF EXISTS $outputIndic;
                     CREATE TABLE $outputIndic
                     AS ${queryFinIndic.join(" UNION ALL ")};
-            ALTER TABLE $outputIndic RENAME COLUMN id_rsu TO $ID_station"""
-  
-  // Save results
-  h2GIS.save(outputLcz, outputPath + File.separator + "${outputLcz}.fgb")
+            ALTER TABLE $outputIndic RENAME COLUMN $id_name TO $ID_station"""
   h2GIS.save(outputIndic, outputPath + File.separator + "${outputIndic}.fgb")
 }
