@@ -1,6 +1,6 @@
 // Add as comment in IntelliJ
 @GrabResolver(name='orbisgis', root='https://central.sonatype.com/repository/maven-snapshots')
-@Grab(group='org.orbisgis.geoclimate', module='geoclimate', version='1.0.1-SNAPSHOT')
+@Grab(group='org.orbisgis.geoclimate', module='geoclimate', version='1.3.0-SNAPSHOT')
 
 // Remove comment in IntelliJ
 // package org.orbisgis.geoclimate.geoindicators
@@ -30,10 +30,11 @@ String dataset = args[4]
 
 // Modify initial input parameters (set only LCZ calculation)
 Map input_params = Geoindicators.WorkflowGeoIndicators.getParameters()
-input_params["indicatorUse"] = ["LCZ", "TEB", "UTRF"]
-list_indicators = ["BUILDING_FRACTION", "BUILDING_HEIGHT", 
-        "WATER_FRACTION", "VEGETATION_FRACTION",
-         "ROAD_FRACTION", "IMPERVIOUS_FRACTION", "FREE_EXTERNAL_FACADE_DENSITY", 
+input_params["indicatorUse"] = ["LCZ"]
+input_params["surfSuperpositions"] = ["high_vegetation": ["water_permanent", "water_intermittent", "building", "low_vegetation", "rail", "road", "impervious"]]
+input_params["surfPriorities"] = ["water_permanent", "water_intermittent", "building", "high_vegetation", "low_vegetation", "rail", "road", "impervious"]
+list_indicators = ["BUILDING_LAND_TYPE", "BUILDING_HEIGHT", 
+         "FREE_EXTERNAL_FACADE_DENSITY", 
          "BUILDING_HEIGHT_WEIGHTED", "BUILDING_SURFACE_DENSITY",
           "SEA_LAND_FRACTION", "ASPECT_RATIO", "SVF", "HEIGHT_OF_ROUGHNESS_ELEMENTS",
            "TERRAIN_ROUGHNESS", "STREET_WIDTH", "PROJECTED_FACADE_DENSITY_DIR", 
@@ -83,7 +84,7 @@ static void main(String inputDir, JdbcDataSource h2GIS, Map input_params, File b
   List queryFinLcz = []
   List queryFinIndic = []
   Map rsu_list = [:]
-
+  
   // Run the calculation for each unit (buffer circle around station)
   int i = 0
   int n = h2GIS.firstRow ("SELECT COUNT(*) AS n FROM rsu")["n"]
@@ -148,6 +149,8 @@ static void main(String inputDir, JdbcDataSource h2GIS, Map input_params, File b
                                 h2GIS,
                                 "RSU$id_rsu", 
                                 list_indicators,
+                                input_params["surfSuperpositions"],
+                                input_params["surfPriorities"],
                                 "building_tempo", 
                                 "road", 
                                 "vegetation",

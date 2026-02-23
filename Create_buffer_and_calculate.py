@@ -232,7 +232,7 @@ for dt in datasets:
             # Test the number of files inside the output dir, rerun if not 2
             nb_files = len(glob.glob(os.path.join(out_file, "*")))
             if nb_files == 1:
-                print("Strange that only one output file is present for folder 'out_file'. Delete the folder and rerun")
+                print(f"Strange that only one output file is present for folder {out_file}. Delete the folder and rerun")
             elif len(glob.glob(os.path.join(out_file, "*"))) == 2:
                 pass
             else:
